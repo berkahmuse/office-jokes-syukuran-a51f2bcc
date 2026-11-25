@@ -6,7 +6,7 @@
 // Writes a single original one-line office joke to /output/entry.txt.
 // Deterministic: no input, no network, no randomness — every run writes
 // the exact same bytes.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 // The joke itself: one line, 106 characters, no setup line, no punchline
@@ -49,4 +49,11 @@ assertGate(JOKE);
 const outPath = process.env.OUTPUT_PATH ?? "/output/entry.txt";
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JOKE, "utf8");
+// Read-back check: the bytes on disk must be exactly the entry bytes.
+// A silent partial write or encoding slip would otherwise ship a
+// corrupted line; fail loudly instead of trusting the write.
+const written = readFileSync(outPath, "utf8");
+if (written !== JOKE) {
+  throw new Error("read-back mismatch: entry.txt does not match the entry line");
+}
 console.log(`Wrote ${JOKE.length} chars to ${outPath}`);
